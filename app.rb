@@ -76,3 +76,32 @@ get '/api/get-vendor/:vendorProject' do
     response_data.to_json
   end
   
+  # Define the GET endpoint to retrieve a list of vendors
+get '/api/get-vendor-list' do
+    # Fetch the list of known vulnerabilities from the CISA website
+    known_vuln_url = URI("https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json")
+  
+    response = Net::HTTP.get_response(known_vuln_url)
+  
+    if response.is_a?(Net::HTTPSuccess)
+      known_vuln = JSON.parse(response.body)
+    else
+      # Handle the error case gracefully
+      status response.code
+      return { error: "Failed to fetch known vulnerabilities: #{response.message}" }.to_json
+    end
+    
+    # Extract the list of unique vendor names
+    vendor_names = known_vuln['vulnerabilities'].map { |vuln| vuln['vendorProject'] }.uniq
+    
+    # Count the number of unique vendors
+    vendor_count = vendor_names.count
+    
+    # Return data as JSON response
+    content_type :json
+    { 
+      "VendorCount" => vendor_count,
+      "VendorList" => vendor_names 
+    }.to_json
+  end
+  
